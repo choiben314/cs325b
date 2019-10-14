@@ -2,3 +2,9 @@ test_images/
 roadtype/
 Peru_Rds/
 Kenya_Rds/
+.ipynb_checkpoints
+*.npy
+*.tif
+__pycache__
+*.pyc
+data/*
