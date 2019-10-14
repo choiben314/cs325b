@@ -12,3 +12,12 @@ def show(path):
     plt.xlabel("pixels")
     plt.ylabel("pixels")
     plt.title(path.split("/")[-1])
+    
+def channel_hist(image):
+    channels = cv2.split(image)
+    colors = ["r", "g", "b"]
+    histograms = []
+    for (channel, color) in zip(channels, colors):
+        hist = cv2.calcHist([channel], [0], None, [256], [0, 256])
+        histograms.append(hist)
+    return histograms
