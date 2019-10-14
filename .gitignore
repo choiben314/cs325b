@@ -8,3 +8,5 @@ Kenya_Rds/
 __pycache__
 *.pyc
 data/*
+local_images/
+extra_data/
