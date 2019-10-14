@@ -36,23 +36,18 @@ def load_shapefile(country):
     util.validate_country(country)
     sf = _load_shapefile(country, encoding="iso-8859-1")
     table = []
-    columns = ("idx", "shapefile_idx", "osm_idx", "highway", "class", "name")
+    columns = ("index", "highway", "class", "name")
     for i, sr in enumerate(sf.shapeRecords()):
         if sr.record.highway in CLASSMAP:
             row = (
-                len(table), 
                 i, 
-                sr.record.osm_id,
                 sr.record.highway, 
                 CLASSMAP[sr.record.highway], 
                 sr.record.name
             )
             table.append(row)
-    df = pandas.DataFrame.from_records(table, index="idx", columns=columns)
+    df = pandas.DataFrame.from_records(table, index="index", columns=columns)
     return df, sf
-
-def lookup_osm(osm):
-    raise NotImplementedError()
     
 # .csv road and image bounding box data handling
 
@@ -74,6 +69,3 @@ def load_geodata(country):
         raise ValueError("Parameter \'country\' must be one of either \'kenya\' or \'peru\'.")
     df.index -= 1
     return df
-
-def lookup_geo(geo, index):    
-    return geo[geo.index.values == index]
