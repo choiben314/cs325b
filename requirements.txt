@@ -1,0 +1,8 @@
+scikit-learn
+scikit-image
+opencv
+tensorflow==2.0.0
+matplotlib
+pyaml
+pyshp
+pandas
