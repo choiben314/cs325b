@@ -1,4 +1,9 @@
-import tensorflow
+import tensorflow as tf
+import pandas
+import numpy as np
+
+import modules
+
 
 class DatasetGenerator:
     
@@ -31,12 +36,15 @@ class DatasetGenerator:
             self._setup_countries.add(country)
         
         
-    def sample(self, country):
+    def sample(self, country, N, validate=True):
         
         def _sample(cls):
             df = self.dataframes[country]
-            idx = np.logical_and(df["class"] == cls, df["valid"] == True)
-            return df.iloc[np.random.choice(df[idx].index, size=self.config["sample"]["size"], replace=False)]
+            if validate:
+                idx = np.logical_and(df["class"] == cls, df["valid"] == True)
+            else:
+                idx = df["class"] == cls
+            return df.iloc[np.random.choice(df[idx].index, size=N, replace=False)]
         
         major = _sample("major")
         minor = _sample("minor")
@@ -47,7 +55,7 @@ class DatasetGenerator:
         filenames = self._extract_filenames(df)
                 
         # major => 0, minor => 1, two-track => 2
-        labels = np.arange(len(filenames)) // self.config["sample"]["size"]
+        labels = np.arange(len(filenames)) // N
         labels = np.eye(np.max(labels) + 1)[labels]
         
         return filenames, labels
@@ -57,7 +65,7 @@ class DatasetGenerator:
         self._setup("kenya")
         
         if self.config.__contains__("sample"):
-            filenames, labels = self.sample("kenya")
+            filenames, labels = self.sample("kenya", self.config["sample"]["size"])
         else:
             df = self.dataframes["kenya"]["valid"].iloc[self.dataframes["kenya"]["valid"] == True]
             
