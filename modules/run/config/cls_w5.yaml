@@ -1,0 +1,25 @@
+# meta-info
+
+base: "cls"
+
+tag: "w5"
+
+# data info
+
+batch_size: 16
+
+image_size: 128
+
+n_channels: 3
+
+shuffle_buffer: 1000
+
+sample:
+
+    size: 100
+    
+    balanced: True
+
+# hyperparameters
+
+learning_rate: 0.001
