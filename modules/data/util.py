@@ -13,10 +13,10 @@ def cache_image_filenames(country, D):
             if fname.endswith(".tif") or fname.endswith(".npy"):
                 ofile.write(f"{fname}\n")
                 
-def load_image_filenames(country, D):
+def load_image_filenames(country):
     validate_country(country)
     
-    path = os.path.join(root(), country, f"{country}_{D}x{D}_images.txt")
+    path = os.path.join(root(), country, f"{country}_roads.txt")
     
     with open(path, "rt") as ifile:
         fnames = [fname.strip() for fname in ifile]
