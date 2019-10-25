@@ -15,6 +15,12 @@ class DatasetGenerator:
         self.shapefiles = {}
         
         self._setup_countries = set()
+        
+        if config["use_kenya_images"]:
+            self._setup("kenya")
+        
+        if config["use_peru_images"]:
+            self._setup("peru")
 
     def _setup(self, country):
         if country != "kenya" and country != "peru":
@@ -26,12 +32,12 @@ class DatasetGenerator:
 
             self.shapefiles[country] = sf
             self.dataframes[country] = pandas.DataFrame.merge(geo, osm, on="index")
-            self.filenames[country] = set(modules.data.util.load_image_filenames(country))
             
-            valid = []
-            for index, road_id in enumerate(self.dataframes[country].values[:, 0]):
-                valid.append(f"{int(index)}_{int(road_id)}.npy" in self.filenames[country])
-            self.dataframes[country]["valid"] = valid
+            classes = [self.config["class_enum"][v] for v in self.dataframes[country]["class"].values]
+            self.dataframes[country]["label"] = classes
+            
+            # indices only needed if need to 
+            # self.indices[country] = set(modules.data.util.load_image_indices(country))
         
             self._setup_countries.add(country)
         
@@ -40,11 +46,7 @@ class DatasetGenerator:
         
         def _sample(cls):
             df = self.dataframes[country]
-            if validate:
-                idx = np.logical_and(df["class"] == cls, df["valid"] == True)
-            else:
-                idx = df["class"] == cls
-            return df.iloc[np.random.choice(df[idx].index, size=N, replace=False)]
+            return df.iloc[np.random.choice(df[df["class"] == cls].index, size=N, replace=False)]
         
         major = _sample("major")
         minor = _sample("minor")
@@ -67,7 +69,7 @@ class DatasetGenerator:
         if self.config.__contains__("sample"):
             filenames, labels = self.sample("kenya", self.config["sample"]["size"])
         else:
-            df = self.dataframes["kenya"]["valid"].iloc[self.dataframes["kenya"]["valid"] == True]
+            df = self.dataframes["kenya"]
             
             filenames = self._extract_filenames(df)
             
