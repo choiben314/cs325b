@@ -1,26 +1,75 @@
 import cv2
 import numpy as np
+import os, sys
 
-def rescale(country, filename, w, h):
-    validate_country(country)
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+from modules.data import util
+                
+def downscale(country, D, subsampling=0, quality=90):
+
+    i_path = os.path.join(util.root(), country, f"{country}_1000x1000_images")
+    o_path = os.path.join(util.root(), country, f"{D}_downscale_images")
     
-    path = os.path.join("data", f"{country}_1000x1000_images", filename)
-    if not os.path.exists(path):
-        raise ValueError(f"File {path} does not exist.")
+    if not os.path.exists(o_path):
+        os.makedirs(o_path)
     
-    image = cv2.imread(path, cv2.IMREAD_COLOR)
+    errors = []
     
-    if image is not None:
-        return skimage.transform.resize(image, (w, h), anti_aliasing=False)
-    else:
-        return None
+    for i, fname in enumerate(os.listdir(i_path)):
+        if i % 1000 == 0:
+            print(f"Processed {i} file dscriptors.")
+        if os.path.isfile(os.path.join(i_path, fname)):
+            try:
+                im = Image.open(os.path.join(i_path, fname))
+            except:
+                errors.append(fname)
+                continue
+
+            head, _ = os.path.splitext(fname)
+            head = "_".join(head.split("_")[-2:])
+            
+            im = im.resize((D, D)).convert("RGB")
+
+            im.save(os.path.join(o_path, f"{head}.jpg"), "JPEG", subsampling=subsampling, quality=quality)
+            
+    with open(os.path.join(o_path, "errors.txt"), "w") as o_err:
+        for e in errors:
+            o_err.write(f"{e}\n")
+
+
+def downcrop(country, D, subsampling=0, quality=90):
+
+    i_path = os.path.join(util.root(), country, f"{country}_1000x1000_images")
+    o_path = os.path.join(util.root(), country, f"{D}_downcrop_images")
     
-def downscale(country, D):
-    fnames = util.load_image_filenames(country, D)
-    for i, fname in enumerate(fnames):
-        src = os.path.join(util.root(), f"{country}_1000x1000_images", fname)
-        if os.path.exists(src):
-            image = rescale("country", fname, D, D)
-            if image is not None:
-                tgt = os.path.join(util.root(), f"{country}_{D}x{D}_images", "_".join(fname.split(".")[0].split("_")[-2:]))
-                np.save(tgt, (image * 255).astype('uint8'))
+    if not os.path.exists(o_path):
+        os.makedirs(o_path)
+        
+    greater = 1000 // 2 + D // 2
+    smaller = 1000 // 2 - D // 2
+    
+    errors = []
+    
+    for i, fname in enumerate(os.listdir(i_path)):
+        if i % 1000 == 0:
+            print(f"Processed {i} file dscriptors.")
+        if os.path.isfile(os.path.join(i_path, fname)):
+            try:
+                im = Image.open(os.path.join(i_path, fname))
+            except:
+                errors.append(fname)
+                continue
+
+            head, _ = os.path.splitext(fname)
+            head = "_".join(head.split("_")[-2:])
+                        
+            im = im.crop((smaller, smaller, greater, greater)).convert("RGB")
+        
+            im.save(os.path.join(o_path, f"{head}.jpg"), "JPEG", subsampling=subsampling, quality=quality)
+            
+            
+    with open(os.path.join(o_path, "errors.txt"), "w") as o_err:
+        for e in errors:
+            o_err.write(f"{e}\n")
