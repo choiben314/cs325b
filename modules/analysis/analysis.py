@@ -10,16 +10,15 @@ import matplotlib.pyplot as plt
 import time
 from PIL import Image as pil_image
 
-from keras.applications import vgg16
-from keras import backend as K
-from keras import layers
-from keras.preprocessing.image import save_img, load_img
-from keras.models import load_model
-from keras.preprocessing.image import img_to_array
+from tensorflow.keras.applications import vgg16
+from tensorflow.keras import backend as K
+from tensorflow.keras import layers
+from tensorflow.keras.preprocessing.image import save_img, load_img
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.image import img_to_array
 from numpy import expand_dims
-from keras.applications.vgg16 import preprocess_input
-from keras.models import Model
-from matplotlib import pyplot
+from tensorflow.keras.applications.vgg16 import preprocess_input
+from tensorflow.keras.models import Model
 
 import tensorflow as tf
 

@@ -48,35 +48,6 @@ class DataManager:
             self._setup_countries.add(country)
 
 
-    def sample(self, country, N, validate=True):
-        
-        raise NotImplementedError("Logic must be built out for use with ImageDataGenerator.")
-        
-        def _extract_filenames(self, df):
-            filenames = []
-            for idx in df.index:
-                filenames.append("{}_{}.npy".format(idx, int(df.loc[idx]['id'])))
-            return filenames
-
-        def _sample(cls):
-            df = self.dataframes[country]
-            return df.iloc[np.random.choice(df[df["class"] == cls].index, size=N, replace=False)]
-
-        major = _sample("major")
-        minor = _sample("minor")
-        two_track = _sample("two-track")
-
-        df = pd.concat([major, minor, two_track])
-
-        filenames = self._extract_filenames(df)
-
-        # major => 0, minor => 1, two-track => 2
-        labels = np.arange(len(filenames)) // N
-        labels = np.eye(np.max(labels) + 1)[labels]
-
-        return filenames, labels
-
-
     def class_weight(self, country):
         class_weight = None
 
@@ -116,6 +87,9 @@ class DataManager:
                 )),
                 columns=["filename", "class"]
             )
+            
+            if self.config["sample"]:
+                dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False)
             
             train_generator = datagen.flow_from_dataframe(
                 dataframe,
