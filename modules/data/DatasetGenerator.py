@@ -15,7 +15,7 @@ class DatasetGenerator:
         self.shapefiles = {}
         
         self._setup_countries = set()
-    
+
     def _setup(self, country):
         if country != "kenya" and country != "peru":
             raise ValueError("Country must be either \'kenya\' or \'peru\'.")
@@ -26,7 +26,7 @@ class DatasetGenerator:
 
             self.shapefiles[country] = sf
             self.dataframes[country] = pandas.DataFrame.merge(geo, osm, on="index")
-            self.filenames[country] = set(modules.data.util.load_image_filenames(country, D=self.config["image_size"]))
+            self.filenames[country] = set(modules.data.util.load_image_filenames(country))
             
             valid = []
             for index, road_id in enumerate(self.dataframes[country].values[:, 0]):
