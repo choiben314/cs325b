@@ -10,7 +10,7 @@ from modules.data import util
 def downscale(country, D, subsampling=0, quality=90):
 
     i_path = os.path.join(util.root(), country, f"{country}_1000x1000_images")
-    o_path = os.path.join(util.root(), country, f"{D}_downscale_images")
+    o_path = os.path.join(util.root(), country, f"{D}", "scaled")
     
     if not os.path.exists(o_path):
         os.makedirs(o_path)
@@ -28,7 +28,7 @@ def downscale(country, D, subsampling=0, quality=90):
                 continue
 
             head, _ = os.path.splitext(fname)
-            head = "_".join(head.split("_")[-2:])
+            head = head.split("_")[-1]
             
             im = im.resize((D, D)).convert("RGB")
 
@@ -42,7 +42,7 @@ def downscale(country, D, subsampling=0, quality=90):
 def downcrop(country, D, subsampling=0, quality=90):
 
     i_path = os.path.join(util.root(), country, f"{country}_1000x1000_images")
-    o_path = os.path.join(util.root(), country, f"{D}_downcrop_images")
+    o_path = os.path.join(util.root(), country, f"{D}", "cropped")
     
     if not os.path.exists(o_path):
         os.makedirs(o_path)
@@ -63,7 +63,7 @@ def downcrop(country, D, subsampling=0, quality=90):
                 continue
 
             head, _ = os.path.splitext(fname)
-            head = "_".join(head.split("_")[-2:])
+            head = head.split("_")[-1]
                         
             im = im.crop((smaller, smaller, greater, greater)).convert("RGB")
         

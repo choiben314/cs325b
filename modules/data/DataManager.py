@@ -1,8 +1,11 @@
+import os
+
 import tensorflow as tf
-import pandas
+import pandas as pd
 import numpy as np
 
 from sklearn.utils.class_weight import compute_class_weight
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 import modules
 
@@ -24,6 +27,7 @@ class DataManager:
         if config["use_peru_images"]:
             self._setup("peru")
 
+
     def _setup(self, country):
         if country != "kenya" and country != "peru":
             raise ValueError("Country must be either \'kenya\' or \'peru\'.")
@@ -33,88 +37,113 @@ class DataManager:
             osm, sf = modules.data.load_shapefile(country)
 
             self.shapefiles[country] = sf
-            self.dataframes[country] = pandas.DataFrame.merge(geo, osm, on="index")
-            
+            self.dataframes[country] = pd.DataFrame.merge(geo, osm, on="index")
+
             classes = [self.config["class_enum"][v] for v in self.dataframes[country]["class"].values]
             self.dataframes[country]["label"] = classes
             
             # indices only needed if need to 
             # self.indices[country] = set(modules.data.util.load_image_indices(country))
-        
+
             self._setup_countries.add(country)
-        
-        
+
+
     def sample(self, country, N, validate=True):
         
+        raise NotImplementedError("Logic must be built out for use with ImageDataGenerator.")
+        
+        def _extract_filenames(self, df):
+            filenames = []
+            for idx in df.index:
+                filenames.append("{}_{}.npy".format(idx, int(df.loc[idx]['id'])))
+            return filenames
+
         def _sample(cls):
             df = self.dataframes[country]
             return df.iloc[np.random.choice(df[df["class"] == cls].index, size=N, replace=False)]
-        
+
         major = _sample("major")
         minor = _sample("minor")
         two_track = _sample("two-track")
-        
-        df = pandas.concat([major, minor, two_track])
-        
+
+        df = pd.concat([major, minor, two_track])
+
         filenames = self._extract_filenames(df)
-                
+
         # major => 0, minor => 1, two-track => 2
         labels = np.arange(len(filenames)) // N
         labels = np.eye(np.max(labels) + 1)[labels]
-        
+
         return filenames, labels
-    
-    def classweights(self, country):
+
+
+    def class_weight(self, country):
         class_weight = None
-        
+
         if self.config["balance_classes"]:
             class_weight = compute_class_weight(
                 "balanced", np.arange(self.config["n_classes"]), self.dataframes[country]["label"].values
             )
-        
+
         return class_weight
 
-            
-    def generate_kenya(self):
-        self._setup("kenya")
-        
-        if self.config.__contains__("sample"):
-            filenames, labels = self.sample("kenya", self.config["sample"]["size"])
-        else:
-            df = self.dataframes["kenya"]
-            
-            filenames = self._extract_filenames(df)
-            
-            labels = np.zeros(len(filenames))
-            labels[df["class"] == "major"] = 0
-            labels[df["class"] == "minor"] = 1
-            labels[df["class"] == "two-track"] = 2
-            
-            labels = np.eye(np.max(labels) + 1)[labels]
-
-        dataset = tf.data.Dataset.from_generator(
-            lambda: ((self._load_filename("kenya", filename), label) for filename, label in zip(filenames, labels)),
-            output_types=(tf.int32, tf.int32),
-            output_shapes=((self.config["image_size"], self.config["image_size"], 3), (labels.shape[1], ))
-        )
-        
-        if self.config["shuffle_buffer"]:
-            dataset = dataset.shuffle(self.config["shuffle_buffer"])
-        
-        dataset = dataset.batch(self.config["batch_size"], drop_remainder=True)
-        
-        return dataset
-        
     
+    def generate_kenya(self):
+        preprocessing_function = None
+        if self.config["pretrained"]:
+            module = modules.models.pretrained_cnn_module(self.config["pretrained"]["type"])
+            preprocessing_function = getattr(module, "preprocess_input")
+            
+            datagen = ImageDataGenerator(
+                preprocessing_function=preprocessing_function,
+                validation_split=self.config["validation_split"],
+            )
+            
+            directory = f"data/kenya/{self.config['image_size']}/{self.config['resizing']}"
+            
+            if not os.path.exists(directory):
+                print(f"Directory {directory} does not exist. Falling back to concurrent resizing.")
+                directory = f"data/kenya/kenya_1000x1000_images"
+            
+            dataframe = pd.DataFrame(
+                list(map(
+                    lambda e: (f"{e[0]}_{e[1]}.jpg", e[2]), 
+                    zip(
+                        self.dataframes['kenya'].index, 
+                        map(int, self.dataframes['kenya']["id"]),
+                        self.dataframes['kenya']["class"]
+                    )
+                )),
+                columns=["filename", "class"]
+            )
+            
+            train_generator = datagen.flow_from_dataframe(
+                dataframe,
+                directory=directory, 
+                subset="training",
+                class_mode='categorical',
+                batch_size=self.config["batch_size"],
+                seed=self.config["seed"],
+                shuffle=self.config["shuffle"],
+                target_size=(self.config["image_size"], self.config["image_size"])
+            )
+
+            val_generator = datagen.flow_from_dataframe(
+                dataframe,
+                directory=directory, 
+                subset="validation",
+                class_mode='categorical',
+                batch_size=self.config["batch_size"],
+                seed=self.config["seed"],
+                shuffle=self.config["shuffle"],
+                target_size=(self.config["image_size"], self.config["image_size"])
+            )
+            
+            return train_generator, val_generator
+            
+        else:
+            raise NotImplementedError("Custom model and preprocessing pipeline not yet defined.")
+
+
     def generate_peru(self):
         raise NotImplementedError()
-    
-    
-    def _extract_filenames(self, df):
-        filenames = []
-        for idx in df.index:
-            filenames.append("{}_{}.npy".format(idx, int(df.loc[idx]['id'])))
-        return filenames
-
-    def _load_filename(self, country, filename):
-        return np.load(os.path.join("data", country, f"{country}_{self.config['image_size']}x{self.config['image_size']}_images", filename))

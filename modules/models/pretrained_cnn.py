@@ -2,9 +2,7 @@ from tensorflow.keras import Sequential
 
 from tensorflow.keras.layers import Input, Flatten, Dense, Dropout
 
-def pretrained_cnn(config, image_size, n_channels):
-    
-    pretrained_type = config["pretrained"]["type"]
+def pretrained_cnn_module(pretrained_type):
 
     if pretrained_type.startswith("VGG"):
         if pretrained_type.endswith("16"):
@@ -18,6 +16,14 @@ def pretrained_cnn(config, image_size, n_channels):
             from tensorflow.keras.applications import resnet as module
     else:
         raise ValueError("Model type must be a VGG or ResNet derivant. See tensorflow.keras.applications for all options")
+        
+    return module
+
+def pretrained_cnn(config, image_size, n_channels):
+    
+    pretrained_type = config["pretrained"]["type"]
+    
+    module = pretrained_cnn_module(pretrained_type)
 
     ConvNet = getattr(module, pretrained_type)
 
@@ -30,6 +36,10 @@ def pretrained_cnn(config, image_size, n_channels):
         pooling=config["pretrained"]["pooling"],
         classes=config["n_classes"]
     )
+    
+    if config["pretrained"]["frozen"]:
+        for layer in convnet.layers:
+            layer.trainable = False
 
     model = Sequential(convnet)
     model.add(Flatten())
