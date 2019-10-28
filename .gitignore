@@ -7,6 +7,6 @@ Kenya_Rds/
 *.tif
 __pycache__
 *.pyc
-data/*
 local_images/
 extra_data/
+data/
