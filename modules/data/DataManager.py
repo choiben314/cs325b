@@ -9,7 +9,6 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 import modules
 
-
 class DataManager:
     
     def __init__(self, config):
@@ -89,31 +88,32 @@ class DataManager:
             )
             
             if self.config["sample"]:
-                dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False)
-            
-            train_generator = datagen.flow_from_dataframe(
-                dataframe,
-                directory=directory, 
-                subset="training",
-                class_mode='categorical',
-                batch_size=self.config["batch_size"],
-                seed=self.config["seed"],
-                shuffle=self.config["shuffle"],
-                target_size=(self.config["image_size"], self.config["image_size"])
-            )
+                dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
+                
+            if self.config["mask"] == 'none':
+                train_generator = datagen.flow_from_dataframe(
+                    dataframe,
+                    directory=directory, 
+                    subset="training",
+                    class_mode='categorical',
+                    batch_size=self.config["batch_size"],
+                    seed=self.config["seed"],
+                    shuffle=self.config["shuffle"],
+                    target_size=(self.config["image_size"], self.config["image_size"])
+                )
 
-            val_generator = datagen.flow_from_dataframe(
-                dataframe,
-                directory=directory, 
-                subset="validation",
-                class_mode='categorical',
-                batch_size=self.config["batch_size"],
-                seed=self.config["seed"],
-                shuffle=self.config["shuffle"],
-                target_size=(self.config["image_size"], self.config["image_size"])
-            )
+                val_generator = datagen.flow_from_dataframe(
+                    dataframe,
+                    directory=directory, 
+                    subset="validation",
+                    class_mode='categorical',
+                    batch_size=self.config["batch_size"],
+                    seed=self.config["seed"],
+                    shuffle=self.config["shuffle"],
+                    target_size=(self.config["image_size"], self.config["image_size"])
+                )
             
-            return train_generator, val_generator
+            return train_generator, val_generator, dataframe
             
         else:
             raise NotImplementedError("Custom model and preprocessing pipeline not yet defined.")
