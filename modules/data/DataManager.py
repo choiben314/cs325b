@@ -166,9 +166,5 @@ class DataManager:
         while True:
             img, label = img_generator.next()
             mask, _ = mask_generator.next()
-            print(img)
-            print(mask)
-            print(np.sum(mask))
-            print(np.max(mask))
             # np.flip to account for upside-down mask
-            yield img.astype(np.float32), (img * np.flip(mask, axis=1)).astype(np.float32), label
+            yield (img * np.flip(mask, axis=1)).astype(np.float32), label
