@@ -44,7 +44,7 @@ class DataManager:
             # indices only needed if need to 
             # self.indices[country] = set(modules.data.util.load_image_indices(country))
             
-            self.dataframes["kenya"]["valid"] = self.file_is_valid(self, self.dataframes["kenya"], "data/kenya/224/cropped")
+            self.dataframes["kenya"]["valid"] = self.file_is_valid(self.dataframes["kenya"], "data/kenya/224/cropped")
 
             self._setup_countries.add(country)
 
@@ -58,7 +58,7 @@ class DataManager:
 
         valid = []
         for i in dataframe.index:
-            fname = f"{i}_{dataframe.iloc[i]["id"]}.jpg"
+            fname = f"{i}_{int(dataframe['id'].loc[i])}.jpg"
             valid.append(fname in filenames)
 
         del filenames
@@ -96,18 +96,19 @@ class DataManager:
             
             dataframe = pd.DataFrame(
                 list(map(
-                    lambda e: (f"{e[0]}_{e[1]}.jpg", e[2]), 
+                    lambda e: (f"{e[0]}_{e[1]}.jpg", e[2], e[3]), 
                     zip(
                         self.dataframes['kenya'].index, 
                         map(int, self.dataframes['kenya']["id"]),
-                        self.dataframes['kenya']["class"]
+                        self.dataframes['kenya']["class"],
+                        self.dataframes['kenya']['valid']
                     )
                 )),
-                columns=["filename", "class"]
+                columns=["filename", "class", "valid"]
             )
             
             if self.config["sample"]:
-                dataframe = dataframe[dataframe["valid"] == True].sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
+                dataframe = dataframe[dataframe["valid"] == True].sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])[["filename", "class"]]
                 
             if self.config["mask"] == 'none':
                 train_generator = datagen.flow_from_dataframe(
