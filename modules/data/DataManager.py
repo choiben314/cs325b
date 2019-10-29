@@ -43,9 +43,28 @@ class DataManager:
             
             # indices only needed if need to 
             # self.indices[country] = set(modules.data.util.load_image_indices(country))
+            
+            self.dataframes["kenya"]["valid"] = self.file_is_valid(self, self.dataframes["kenya"], "data/kenya/224/cropped")
 
             self._setup_countries.add(country)
 
+    def extract_filenames(self, directory):
+        filenames = map(lambda x: x.strip(), os.listdir(directory))
+        filenames = set(filenames)
+        return filenames
+
+    def file_is_valid(self, dataframe, directory):
+        filenames = self.extract_filenames(directory)
+
+        valid = []
+        for i in dataframe.index:
+            fname = f"{i}_{dataframe.iloc[i]["id"]}.jpg"
+            valid.append(fname in filenames)
+
+        del filenames
+
+        return valid
+            
 
     def class_weight(self, country):
         class_weight = None
@@ -68,10 +87,6 @@ class DataManager:
                 preprocessing_function=preprocessing_function,
                 validation_split=self.config["validation_split"],
             )
-            datagen2 = ImageDataGenerator(
-#                 preprocessing_function=preprocessing_function,
-                validation_split=self.config["validation_split"],
-            )
             
             directory = f"{modules.data.util.root()}/kenya/{self.config['image_size']}/{self.config['resizing']}"
             
@@ -92,7 +107,7 @@ class DataManager:
             )
             
             if self.config["sample"]:
-                dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
+                dataframe = dataframe[dataframe["valid"] == True].sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
                 
             if self.config["mask"] == 'none':
                 train_generator = datagen.flow_from_dataframe(
@@ -118,7 +133,14 @@ class DataManager:
                 )
             elif self.config["mask"] == 'overlay':
                 raise NotImplementedError()
+                datagen_mask = ImageDataGenerator(
+                    validation_split=self.config["validation_split"],
+                )
             elif self.config["mask"] == 'occlude':
+                datagen_mask = ImageDataGenerator(
+                    validation_split=self.config["validation_split"],
+                )
+                
                 mask_df = pd.DataFrame(list(map(
                     lambda e: (f"{e[0]}_kenya_224x224_mask_10.png", e[2]), 
                     zip(
@@ -131,8 +153,9 @@ class DataManager:
 
                 mask_df = mask_df.iloc[dataframe.index]
                 mask_directory = f"{modules.data.util.root()}/kenya/kenya_224x224_masks_10/"
-                train_generator=self.multiple_generator(datagen, datagen2, dataframe, mask_df, directory, mask_directory, 'training')
-                val_generator=self.multiple_generator(datagen, datagen2, dataframe, mask_df, directory, mask_directory, 'validation')             
+                
+                train_generator=self.multiple_generator(datagen, datagen_mask, dataframe, mask_df, directory, mask_directory, 'training')
+                val_generator=self.multiple_generator(datagen, datagen_mask, dataframe, mask_df, directory, mask_directory, 'validation')             
         else:
             raise NotImplementedError("Custom model and preprocessing pipeline not yet defined.")
         return train_generator, val_generator
