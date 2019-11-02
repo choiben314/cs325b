@@ -64,7 +64,12 @@ class DataManager:
             )
 
         return class_weight
-
+    
+    def sample_class(self, dataframe, cls, n):
+        assert type(cls) == type("class")
+        
+        df = dataframe[dataframe["class"] == cls]
+        return df.sample(n=n, replace=False, random_state=self.config["seed"])
     
     def generate_kenya(self):
         
@@ -76,7 +81,17 @@ class DataManager:
         
         # sample the data
         if self.config["sample"]:
-            dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
+            if not self.config["sample"]["balanced"]:
+                dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
+            else:
+                dataframes_per_class = []
+                for cls in self.config["class_enum"]:
+                    df = self.sample_class(dataframe, cls, (self.config["sample"]["size"] // self.config["n_classes"]))
+                    dataframes_per_class.append(df)
+                dataframe = pd.concat(dataframes_per_class)
+                
+                # shuffle the data
+                dataframe.reindex(np.random.permutation(dataframe.index))        
 
         # define data preprocessing
         preprocessing_function = None
