@@ -28,7 +28,7 @@ pretrained:
 
 batch_size: 32
 learning_rate: 0.001
-n_epochs: 10
+n_epochs: 30
 tensorboard_freq: 50
 balance_classes: True
 optimizer: adam

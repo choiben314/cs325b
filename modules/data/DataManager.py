@@ -191,4 +191,4 @@ class DataManager:
             img, label = img_generator.next()
             mask, _ = mask_generator.next()
             # np.flip to account for upside-down mask
-            yield (img * np.flip(mask, axis=1)).astype(np.float32), label
+            yield (img * (1 - np.flip(mask, axis=1))).astype(np.float32), label
