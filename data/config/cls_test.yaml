@@ -1,4 +1,4 @@
-name: cls_w6_e2
+name: cls_test
 
 use_kenya_images: True # not implemented
 use_peru_images: False # not implemented
@@ -6,11 +6,12 @@ use_peru_images: False # not implemented
 image_size: 224
 n_channels: 3
 n_classes: 3
-resizing: cropped # scaled or cropped
-mask: occlude #none, overlay, or occlude
+resizing: scaled # scaled or cropped
+mask: none #none, overlay, or occlude
 
 sample:
-    size: 15000
+    size: 1000
+    balanced: True
 
 class_enum:
     major: 0
@@ -23,16 +24,17 @@ pretrained:
     fnn_layers: 2
     weights: imagenet
     pooling: max
-    dropout: 0.5
+    dropout: 0.25
     frozen: False
 
 batch_size: 32
 learning_rate: 0.001
-n_epochs: 10
+n_epochs: 50
 tensorboard_freq: 50
-balance_classes: True
+weight_classes: True
 optimizer: adam
-weighted_metrics: accuracy
+weighted_metrics: 
+ - accuracy
 
 # image date generator
 validation_split: 0.1
