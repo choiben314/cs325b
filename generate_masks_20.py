@@ -12,7 +12,7 @@ orig_dim = 1000
 crop_dim = 224
 threshold = 20
 
-save_dir = './data/kenya/kenya_224x224_masks_20/'
+save_dir = './data/kenya/kenya_224x224_masks_scaled_20/'
 
 def polygon_perimeter(r, c):
     r = np.round(r).astype(int)
@@ -68,5 +68,8 @@ for idx in range(len(data_manager.dataframes["kenya"])):
             
     img = np.zeros((orig_dim, orig_dim), dtype=np.uint8)
     img[lat_thick, lon_thick] = 1
-    save_img = img[(orig_dim // 2 - crop_dim // 2):(orig_dim // 2 + crop_dim // 2), (orig_dim // 2 - crop_dim // 2):(orig_dim // 2 + crop_dim // 2)]
-    cv2.imwrite(save_dir + str(idx) + '_kenya_224x224_mask_20.png', save_img)
+    #save_img = img[(orig_dim // 2 - crop_dim // 2):(orig_dim // 2 + crop_dim // 2), (orig_dim // 2 - crop_dim // 2):(orig_dim // 2 + crop_dim // 2)]
+    from skimage.transform import resize
+    save_img = resize(img, (224, 224), anti_aliasing=False)
+    #save_img = img
+    cv2.imwrite(save_dir + str(idx) + '_kenya_224x224_mask_scaled_20.png', save_img)

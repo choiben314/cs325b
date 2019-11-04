@@ -201,6 +201,13 @@ class DataManager:
             )),
             columns=["filename", "class"]
         )
+# <<<<<<< HEAD
+#         while True:
+#             img, label = img_generator.next()
+#             mask, _ = mask_generator.next()
+#             # np.flip to account for upside-down mask
+#             yield (img * (1 - np.flip(mask, axis=1))).astype(np.float32), label
+# =======
             
     def _format_filename(self, id1, id2, suffix=None, ext="jpg"):
         if suffix is None:
@@ -213,3 +220,4 @@ class DataManager:
         filenames = set(filenames)
         return filenames
 
+# >>>>>>> 2ae8563123f4f91d8d37f2667b1f8313f0bef8ea
