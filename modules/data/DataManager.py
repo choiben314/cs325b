@@ -58,7 +58,7 @@ class DataManager:
     def class_weight(self, country):
         class_weight = None
 
-        if self.config["balance_classes"]:
+        if self.config["weight_classes"]:
             class_weight = compute_class_weight(
                 "balanced", np.arange(self.config["n_classes"]), self.dataframes[country]["label"].values
             )
@@ -91,7 +91,7 @@ class DataManager:
                 dataframe = pd.concat(dataframes_per_class)
                 
                 # shuffle the data
-                dataframe.reindex(np.random.permutation(dataframe.index))        
+                dataframe = dataframe.reindex(np.random.permutation(dataframe.index))        
 
         # define data preprocessing
         preprocessing_function = None
@@ -152,7 +152,7 @@ class DataManager:
             ##
             raise NotImplementedError("4th channel overlay not implemented yet.")
 
-        return train_generator, val_generator
+        return train_generator, val_generator, dataframe
 
 
     def generate_peru(self):
