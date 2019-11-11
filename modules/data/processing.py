@@ -19,7 +19,7 @@ def downscale(country, D, subsampling=0, quality=90):
     
     for i, fname in enumerate(os.listdir(i_path)):
         if i % 1000 == 0:
-            print(f"Processed {i} file dscriptors.")
+            print(f"Processed {i} file descriptors.")
         if os.path.isfile(os.path.join(i_path, fname)):
             try:
                 im = Image.open(os.path.join(i_path, fname))
@@ -54,7 +54,7 @@ def downcrop(country, D, subsampling=0, quality=90):
     
     for i, fname in enumerate(os.listdir(i_path)):
         if i % 1000 == 0:
-            print(f"Processed {i} file dscriptors.")
+            print(f"Processed {i} file descriptors.")
         if os.path.isfile(os.path.join(i_path, fname)):
             try:
                 im = Image.open(os.path.join(i_path, fname))

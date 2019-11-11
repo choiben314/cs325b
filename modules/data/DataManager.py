@@ -79,6 +79,18 @@ class DataManager:
         # format dataframe for ImageDataGenerator.flow_from_dataframe
         dataframe = self._format_dataframe_for_flow("kenya")
         
+        if self.config['remove_clouds']:
+            cloud_directory = f"{modules.data.util.root()}/kenya/cloudy.txt"
+            cloud_filenames = pd.read_csv(cloud_directory, sep=" ", header=None)
+            cloud_filenames.columns = ["filename"]
+            
+            cloud_filenames["filename"] = cloud_filenames.filename.str.slice(16)
+            cloud_filenames["filename"] = cloud_filenames.filename.str.slice(0, -4) + ".jpg"
+
+            dataframe = dataframe[~dataframe['filename'].isin(cloud_filenames.filename)]
+            
+            print("Declouded dataframe length: " + str(len(dataframe.index)))
+        
         # sample the data
         if self.config["sample"]:
             if not self.config["sample"]["balanced"]:
@@ -112,12 +124,6 @@ class DataManager:
             val_generator = self._build_generator(datagen, dataframe, directory, "validation")            
         elif self.config["mask"] == "occlude" or self.config["mask"] == "overlay":
             datagen_mask = ImageDataGenerator(validation_split=self.config["validation_split"])
-
-            ##
-            #
-            # TODO: replace with more general DataManager_format_dataframe_for_flow
-            #
-            ##
             dataframe_mask = pd.DataFrame(
                 list(map(
                     lambda e: (f"{e[0]}_kenya_224x224_mask_20.png", e[2]), 
@@ -143,15 +149,7 @@ class DataManager:
                 directory, directory_mask, 
                 'validation'
             )
-                
-#         elif self.config["mask"] == "overlay":
-#             ##
-#             #
-#             # TODO: build out overlay (4th channel) logic
-#             #
-#             ##
-#             raise NotImplementedError("4th channel overlay not implemented yet.")
-
+               
         return train_generator, val_generator, dataframe
 
 
@@ -167,15 +165,9 @@ class DataManager:
     def multiple_generator(self, datagen1, datagen2, dataframe1, dataframe2, directory1, directory2, subset):
         generator1 = self._build_generator(datagen1, dataframe1, directory1, subset)
         generator2 = self._build_generator(datagen2, dataframe2, directory2, subset)
-#         return zip(generator1, generator2)
         while True:
             x1, y1 = generator1.next()
             x2, y2 = generator2.next()
-            ##
-            #
-            # TODO: remove np.flip for upside-down masks
-            #
-            ##
             if self.config["mask"] == "occlude":
                 if not self.config['mask_inverted']:
                     yield (x1 * np.flip(x2, axis=1)).astype(np.float32), y1
@@ -208,13 +200,6 @@ class DataManager:
             )),
             columns=["filename", "class"]
         )
-# <<<<<<< HEAD
-#         while True:
-#             img, label = img_generator.next()
-#             mask, _ = mask_generator.next()
-#             # np.flip to account for upside-down mask
-#             yield (img * (1 - np.flip(mask, axis=1))).astype(np.float32), label
-# =======
             
     def _format_filename(self, id1, id2, suffix=None, ext="jpg"):
         if suffix is None:
@@ -226,5 +211,3 @@ class DataManager:
         filenames = map(lambda x: x.strip(), os.listdir(directory))
         filenames = set(filenames)
         return filenames
-
-# >>>>>>> 2ae8563123f4f91d8d37f2667b1f8313f0bef8ea
