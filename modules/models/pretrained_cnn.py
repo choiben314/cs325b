@@ -1,6 +1,6 @@
 from tensorflow.keras import Sequential
 
-from tensorflow.keras.layers import Input, Flatten, Dense, Dropout
+from tensorflow.keras.layers import Input, Flatten, Dense, Dropout, Conv2D, MaxPooling2D, BatchNormalization, Activation
 
 def pretrained_cnn_module(pretrained_type):
 
@@ -49,3 +49,85 @@ def pretrained_cnn(config, image_size, n_channels):
     model.add(Dense(config["n_classes"], activation="softmax"))
     
     return model
+
+def pretrained_cnn_multichannel(config, image_size, n_channels):
+    if n_channels == 3:
+        return pretrained_cnn(config, image_size, n_channels)
+    
+    model = Sequential()
+    model.add(Conv2D(64, kernel_size=(5, 5), strides=(1, 1),
+                     input_shape=(224, 224, 4)))
+    model.add(BatchNormalization())
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+    model.add(Conv2D(128, (5, 5), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Flatten())
+    model.add(Dense(256, activation="relu"))
+    model.add(Dropout(config["pretrained"]["dropout"]))
+    model.add(Dense(3, activation='softmax'))
+    
+    return model
+    
+#     pretrained_type = config["pretrained"]["type"]
+    
+#     module = pretrained_cnn_module(pretrained_type)
+
+#     ConvNet = getattr(module, pretrained_type)
+    
+#     input_layer = Input(shape=(224, 224, n_channels))
+#     multichannel_concat_layer = Conv2D(filters=3, kernel_size=3, padding='same')(input_layer)
+
+#     convnet = ConvNet(
+#         include_top=False,
+#         input_tensor=multichannel_concat_layer,
+#         weights=None,
+#         pooling=config["pretrained"]["pooling"],
+#         classes=config["n_classes"]
+#     )
+    
+#     if config["pretrained"]["frozen"]:
+#         for layer in convnet.layers:
+#             layer.trainable = False
+
+#     model = Sequential(convnet)
+#     model.add(Flatten())
+#     for layer in range(config["pretrained"]["fnn_layers"]):
+#         model.add(Dense(config["pretrained"]["fnn_units"], activation="relu"))
+#         model.add(Dropout(config["pretrained"]["dropout"]))
+#     model.add(Dense(config["n_classes"], activation="softmax"))
+  
+#     model = Sequential()
+#     model.add(Conv2D(64, (3, 3), input_shape=(224, 224, 4), use_bias=True))
+#     model.add(BatchNormalization())
+#     model.add(Activation("relu"))
+#     model.add(Conv2D(64, (3, 3), use_bias=True))
+#     model.add(BatchNormalization())
+#     model.add(Activation("relu"))
+#     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+#     model.add(Conv2D(128, (3, 3), input_shape=(224, 224, 4), use_bias=True))
+#     model.add(BatchNormalization())
+#     model.add(Activation("relu"))
+#     model.add(Conv2D(128, (3, 3), use_bias=True))
+#     model.add(BatchNormalization())
+#     model.add(Activation("relu"))
+#     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+#     model.add(Conv2D(256, (3, 3), input_shape=(224, 224, 4), use_bias=True))
+#     model.add(BatchNormalization())
+#     model.add(Activation("relu"))
+#     model.add(Conv2D(256, (3, 3), use_bias=True))
+#     model.add(BatchNormalization())
+#     model.add(Activation("relu"))
+#     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+#     model.add(Conv2D(512, (3, 3), input_shape=(224, 224, 4), use_bias=True))
+#     model.add(BatchNormalization())
+#     model.add(Activation("relu"))
+#     model.add(Conv2D(512, (3, 3), use_bias=True))
+#     model.add(BatchNormalization())
+#     model.add(Activation("relu"))
+#     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+#     model.add(Flatten())
+#     model.add(Dense(config["pretrained"]["fnn_units"], activation="relu"))
+#     model.add(Dropout(config["pretrained"]["dropout"]))
+#     model.add(Dense(3, activation='softmax'))
+    
