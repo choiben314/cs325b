@@ -110,7 +110,7 @@ class DataManager:
         if self.config["mask"] == 'none':
             train_generator = self._build_generator(datagen, dataframe, directory, "training")
             val_generator = self._build_generator(datagen, dataframe, directory, "validation")            
-        elif self.config["mask"] == "occlude":
+        elif self.config["mask"] == "occlude" or self.config["mask"] == "overlay":
             datagen_mask = ImageDataGenerator(validation_split=self.config["validation_split"])
 
             ##
@@ -120,7 +120,7 @@ class DataManager:
             ##
             dataframe_mask = pd.DataFrame(
                 list(map(
-                    lambda e: (f"{e[0]}_kenya_224x224_mask_10.png", e[2]), 
+                    lambda e: (f"{e[0]}_kenya_224x224_mask_20.png", e[2]), 
                     zip(
                         self.dataframes['kenya'].index,
                         map(int, self.dataframes['kenya']["id"]),
@@ -129,7 +129,7 @@ class DataManager:
                 )),
                 columns=["filename", "class"])
             dataframe_mask = dataframe_mask.iloc[dataframe.index]
-            directory_mask = f"{modules.data.util.root()}/kenya/kenya_224x224_masks_10/"
+            directory_mask = f"{modules.data.util.root()}/kenya/kenya_224x224_masks_20/"
 
             train_generator = self.multiple_generator(
                 datagen, datagen_mask, 
@@ -144,13 +144,13 @@ class DataManager:
                 'validation'
             )
                 
-        elif self.config["mask"] == "overlay":
-            ##
-            #
-            # TODO: build out overlay (4th channel) logic
-            #
-            ##
-            raise NotImplementedError("4th channel overlay not implemented yet.")
+#         elif self.config["mask"] == "overlay":
+#             ##
+#             #
+#             # TODO: build out overlay (4th channel) logic
+#             #
+#             ##
+#             raise NotImplementedError("4th channel overlay not implemented yet.")
 
         return train_generator, val_generator, dataframe
 
@@ -167,6 +167,7 @@ class DataManager:
     def multiple_generator(self, datagen1, datagen2, dataframe1, dataframe2, directory1, directory2, subset):
         generator1 = self._build_generator(datagen1, dataframe1, directory1, subset)
         generator2 = self._build_generator(datagen2, dataframe2, directory2, subset)
+#         return zip(generator1, generator2)
         while True:
             x1, y1 = generator1.next()
             x2, y2 = generator2.next()
@@ -175,8 +176,13 @@ class DataManager:
             # TODO: remove np.flip for upside-down masks
             #
             ##
-            yield (x1 * np.flip(x2, axis=1)).astype(np.float32), y1
-            
+            if self.config["mask"] == "occlude":
+                if not self.config['mask_inverted']:
+                    yield (x1 * np.flip(x2, axis=1)).astype(np.float32), y1
+                else:
+                    yield (x1 * (1 - np.flip(x2, axis=1))).astype(np.float32), y1
+            elif self.config["mask"] == "overlay":
+                yield np.concatenate((x1, np.expand_dims(np.flip(x2, axis=1)[:, :, :, 0], axis=3)), axis=3), y1
     def _build_generator(self, datagen, dataframe, directory, subset):
         return datagen.flow_from_dataframe(
             dataframe,
@@ -185,7 +191,8 @@ class DataManager:
             class_mode='categorical',
             batch_size=self.config["batch_size"],
             seed=self.config["seed"],
-            shuffle=self.config["shuffle"],
+#             shuffle=self.config["shuffle"],
+            shuffle=False,
             target_size=(self.config["image_size"], self.config["image_size"])
         )
             
