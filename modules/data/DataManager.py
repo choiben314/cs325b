@@ -82,7 +82,10 @@ class DataManager:
             if not self.config["sample"]["balanced"]:
                 dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
             else:
-                labels = set([str(self.config["class_enum"][cls]) for cls in self.config["class_enum"]])
+                labels = set()
+                for cls in self.config["class_enum"]:
+                    if self.config["class_enum"][cls] >= 0:
+                        labels.add(str(self.config["class_enum"][cls]))
                 dataframes_per_class = []
                 for label in labels:
                     df = self.sample_class(dataframe, label, (self.config["sample"]["size"] // len(labels)))

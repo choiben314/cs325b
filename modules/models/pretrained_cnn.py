@@ -33,8 +33,7 @@ def pretrained_cnn(config, image_size, n_channels):
         include_top=False,
         weights=config["pretrained"]["weights"],
         input_tensor=input_layer,
-        pooling=config["pretrained"]["pooling"],
-        classes=config["n_classes"]
+        pooling=config["pretrained"]["pooling"]
     )
     
     if config["pretrained"]["frozen"]:
