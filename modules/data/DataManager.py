@@ -77,6 +77,18 @@ class DataManager:
         # format dataframe for ImageDataGenerator.flow_from_dataframe
         dataframe = self._format_dataframe_for_flow("kenya")
         
+        if self.config['remove_clouds']:
+            cloud_directory = f"{modules.data.util.root()}/kenya/cloudy.txt"
+            cloud_filenames = pd.read_csv(cloud_directory, sep=" ", header=None)
+            cloud_filenames.columns = ["filename"]
+            
+            cloud_filenames["filename"] = cloud_filenames.filename.str.slice(16)
+            cloud_filenames["filename"] = cloud_filenames.filename.str.slice(0, -4) + ".jpg"
+
+            dataframe = dataframe[~dataframe['filename'].isin(cloud_filenames.filename)]
+            
+            print("Declouded dataframe length: " + str(len(dataframe.index)))
+        
         # sample the data
         if self.config["sample"]:                    
             if not self.config["sample"]["balanced"]:
@@ -112,17 +124,11 @@ class DataManager:
         if self.config["mask"] == 'none':
             train_generator = self._build_generator(datagen, dataframe, directory, "training")
             val_generator = self._build_generator(datagen, dataframe, directory, "validation")            
-        elif self.config["mask"] == "occlude":
+        elif self.config["mask"] == "occlude" or self.config["mask"] == "overlay":
             datagen_mask = ImageDataGenerator(validation_split=self.config["validation_split"])
-
-            ##
-            #
-            # TODO: replace with more general DataManager_format_dataframe_for_flow
-            #
-            ##
             dataframe_mask = pd.DataFrame(
                 list(map(
-                    lambda e: (f"{e[0]}_kenya_224x224_mask_10.png", e[2]), 
+                    lambda e: (f"{e[0]}_kenya_224x224_mask_20.png", e[2]), 
                     zip(
                         self.dataframes['kenya'].index,
                         map(int, self.dataframes['kenya']["id"]),
@@ -131,7 +137,7 @@ class DataManager:
                 )),
                 columns=["filename", "class"])
             dataframe_mask = dataframe_mask.iloc[dataframe.index]
-            directory_mask = f"{modules.data.util.root()}/kenya/kenya_224x224_masks_10/"
+            directory_mask = f"{modules.data.util.root()}/kenya/kenya_224x224_masks_20/"
 
             train_generator = self.multiple_generator(
                 datagen, datagen_mask, 
@@ -145,15 +151,7 @@ class DataManager:
                 directory, directory_mask, 
                 'validation'
             )
-                
-        elif self.config["mask"] == "overlay":
-            ##
-            #
-            # TODO: build out overlay (4th channel) logic
-            #
-            ##
-            raise NotImplementedError("4th channel overlay not implemented yet.")
-
+               
         return train_generator, val_generator, dataframe
 
 
@@ -172,13 +170,13 @@ class DataManager:
         while True:
             x1, y1 = generator1.next()
             x2, y2 = generator2.next()
-            ##
-            #
-            # TODO: remove np.flip for upside-down masks
-            #
-            ##
-            yield (x1 * np.flip(x2, axis=1)).astype(np.float32), y1
-            
+            if self.config["mask"] == "occlude":
+                if not self.config['mask_inverted']:
+                    yield (x1 * np.flip(x2, axis=1)).astype(np.float32), y1
+                else:
+                    yield (x1 * (1 - np.flip(x2, axis=1))).astype(np.float32), y1
+            elif self.config["mask"] == "overlay":
+                yield np.concatenate((x1, np.expand_dims(np.flip(x2, axis=1)[:, :, :, 0], axis=3)), axis=3), y1
     def _build_generator(self, datagen, dataframe, directory, subset):
         return datagen.flow_from_dataframe(
             dataframe,
@@ -187,7 +185,8 @@ class DataManager:
             class_mode='categorical',
             batch_size=self.config["batch_size"],
             seed=self.config["seed"],
-            shuffle=self.config["shuffle"],
+#             shuffle=self.config["shuffle"],
+            shuffle=False,
             target_size=(self.config["image_size"], self.config["image_size"])
         )
             
