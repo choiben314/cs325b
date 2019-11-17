@@ -42,7 +42,7 @@ class DataManager:
             self.dataframes[country]["label"] = classes
             
             directory = f"{modules.data.util.root()}/{country}/{self.config['image_size']}/{self.config['resizing']}"
-            valid = self.file_is_valid(self.dataframes["kenya"], directory)
+            valid = self.file_is_valid(self.dataframes[country], directory)
             self.dataframes[country] = self.dataframes[country][valid]
 
             self._setup_countries.add(country)
@@ -112,17 +112,29 @@ class DataManager:
             preprocessing_function = getattr(module, "preprocess_input")
         else:
             raise NotImplementedError("Custom model and preprocessing pipeline not yet defined.")
+        datagen = None
         
-        # make image data generator for rgb
-        datagen = ImageDataGenerator(
-            preprocessing_function=preprocessing_function,
-            validation_split=self.config["validation_split"],
-        )
+        if self.config["use_grayscale"]:
+            def new_preprocess(x):
+                x = tf.image.rgb_to_grayscale(x)
+                return preprocessing_function(x)
+            # make image data generator for rgb
+            datagen = ImageDataGenerator(
+                preprocessing_function=new_preprocess,
+                validation_split=self.config["validation_split"],
+            )
+            
+        else:
+            # make image data generator for rgb
+            datagen = ImageDataGenerator(
+                preprocessing_function=preprocessing_function,
+                validation_split=self.config["validation_split"],
+            )
         
         if self.config["mask"] == 'none':
             train_generator = self._build_generator(datagen, dataframe, directory, "training")
             val_generator = self._build_generator(datagen, dataframe, directory, "validation")            
-        elif self.config["mask"] == "occlude" or self.config["mask"] == "overlay":
+        elif self.config["mask"] == "occlude" or self.config["mask"] == "overlay" or self.config["mask"] == "overlay_3":
             datagen_mask = ImageDataGenerator(validation_split=self.config["validation_split"])
             dataframe_mask = pd.DataFrame(
                 list(map(
@@ -154,13 +166,75 @@ class DataManager:
 
 
     def generate_peru(self):
-        ##
-        #
-        # TODO: build out peru logic
-        #
-        ##
-        raise NotImplementedError()
+        directory = f"{modules.data.util.root()}/peru/{self.config['image_size']}/{self.config['resizing']}"
+        country="peru"
+
+        geo = modules.data.load_geodata(country)
+        geo = geo.iloc[::2].reset_index()
+        geo['index'] = geo['index'] / 2
+        osm, sf = modules.data.load_shapefile(country)
+
+        self.shapefiles[country] = sf
+        self.dataframes[country] = pd.DataFrame.merge(geo, osm, on="index")
+        self.dataframes[country]['index'] = (self.dataframes[country]['index'] * 2).astype('int32')
+        self.dataframes[country] = self.dataframes[country].set_index(self.dataframes[country]['index'])
+        dataframe = self._format_dataframe_for_flow("peru")
+        dir_names = os.listdir(directory)
+        dataframe['filename'] = dataframe['filename'].str.split('_', n = 1, expand = True)[1]
+        dir_names = pd.DataFrame(dir_names)[0].str.split('_', n=1, expand=True).drop_duplicates(1, keep='last')
+        dir_names = dir_names.rename(columns={0: "prefix", 1: "filename"})
+        dataframe = pd.merge(dataframe, dir_names, on='filename')
+        dataframe['filename'] = dataframe['prefix'] + '_' + dataframe['filename']
+        dataframe = dataframe.drop(columns='prefix')
         
+        if self.config['remove_clouds']:
+            cloud_directory = f"{modules.data.util.root()}/peru/cloudy.txt"
+            cloud_filenames = pd.read_csv(cloud_directory, sep=" ", header=None)
+            cloud_filenames.columns = ["filename"]
+            
+            cloud_filenames["filename"] = cloud_filenames.filename.str.slice(16)
+            cloud_filenames["filename"] = cloud_filenames.filename.str.slice(0, -4) + ".jpg"
+
+            dataframe = dataframe[~dataframe['filename'].isin(cloud_filenames.filename)]
+            
+            print("Declouded dataframe length: " + str(len(dataframe.index)))
+            
+        # sample the data
+        if self.config["sample"]:
+            if not self.config["sample"]["balanced"]:
+                dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
+            else:
+                dataframes_per_class = []
+                for cls in self.config["class_enum"]:
+                    df = self.sample_class(dataframe, cls, (self.config["sample"]["size"] // self.config["n_classes"]))
+                    dataframes_per_class.append(df)
+                dataframe = pd.concat(dataframes_per_class)
+                
+                # shuffle the data
+                dataframe = dataframe.reindex(np.random.permutation(dataframe.index))        
+
+        # define data preprocessing
+        preprocessing_function = None
+        if self.config["pretrained"]:
+            module = modules.models.pretrained_cnn_module(self.config["pretrained"]["type"])
+            preprocessing_function = getattr(module, "preprocess_input")
+        else:
+            raise NotImplementedError("Custom model and preprocessing pipeline not yet defined.")
+        
+        # make image data generator for rgb
+        datagen = ImageDataGenerator(
+            preprocessing_function=preprocessing_function,
+            validation_split=self.config["validation_split"],
+        )
+        
+        if self.config["mask"] == 'none':
+            train_generator = self._build_generator(datagen, dataframe, directory, "training")
+            val_generator = self._build_generator(datagen, dataframe, directory, "validation")            
+        elif self.config["mask"] == "occlude" or self.config["mask"] == "overlay":
+            raise NotImplementedError("Masking not implemented for Peru.")
+               
+        return train_generator, val_generator, dataframe
+
         
     def multiple_generator(self, datagen1, datagen2, dataframe1, dataframe2, directory1, directory2, subset):
         generator1 = self._build_generator(datagen1, dataframe1, directory1, subset)
@@ -175,6 +249,8 @@ class DataManager:
                     yield (x1 * (1 - np.flip(x2, axis=1))).astype(np.float32), y1
             elif self.config["mask"] == "overlay":
                 yield np.concatenate((x1, np.expand_dims(np.flip(x2, axis=1)[:, :, :, 0], axis=3)), axis=3), y1
+            elif self.config["mask"] == "overlay_3":
+                yield np.concatenate((x1[:, :, :, :-1], np.expand_dims(np.flip(x2, axis=1)[:, :, :, 0], axis=3)), axis=3), y1
     def _build_generator(self, datagen, dataframe, directory, subset):
         return datagen.flow_from_dataframe(
             dataframe,

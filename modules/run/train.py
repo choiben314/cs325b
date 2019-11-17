@@ -31,7 +31,7 @@ class Trainer(Runner):
         self.checkpoints_callback = ModelCheckpoint(
             os.path.join(self.checkpoints_dir, "weights.{epoch:02d}-{val_loss:.2f}.hdf5"),
             monitor='val_loss',
-            save_best_only=True,
+            save_best_only=False,
             save_weights_only=True,
             save_freq='epoch',
         )

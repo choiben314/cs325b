@@ -3,16 +3,17 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-x = os.listdir('data/kenya/kenya_1000x1000_images')
+#x = os.listdir('data/kenya/kenya_1000x1000_images')
+x = os.listdir('data/peru/224/cropped')
 
-corrupt = open('corrupt.txt', 'w')
-cloud = open('cloudy.txt', 'w')
-gray = open('grayscale.txt', 'w')
+corrupt = open('data/peru/corrupt.txt', 'w')
+cloud = open('data/peru/cloudy.txt', 'w')
+gray = open('data/peru/grayscale.txt', 'w')
 
 for idx, el in enumerate(x):
     if idx % 1000 == 0:
         print(idx)
-    img = cv2.imread('data/kenya/kenya_1000x1000_images/' + el, cv2.IMREAD_COLOR)
+    img = cv2.imread('data/peru/224/cropped/' + el, cv2.IMREAD_COLOR)
     if img is None:
         corrupt.write(el + '\n')
     else:
