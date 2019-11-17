@@ -65,12 +65,10 @@ class DataManager:
 
         return class_weight
     
-    def sample_class(self, dataframe, cls, n):
-        assert type(cls) == type("class")
-        
+    def sample_class(self, dataframe, cls, n):           
         df = dataframe[dataframe["class"] == cls]
         return df.sample(n=n, replace=False, random_state=self.config["seed"])
-    
+            
     def generate_kenya(self):
         
         # get input directory
@@ -92,13 +90,17 @@ class DataManager:
             print("Declouded dataframe length: " + str(len(dataframe.index)))
         
         # sample the data
-        if self.config["sample"]:
+        if self.config["sample"]:                    
             if not self.config["sample"]["balanced"]:
                 dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
             else:
-                dataframes_per_class = []
+                labels = set()
                 for cls in self.config["class_enum"]:
-                    df = self.sample_class(dataframe, cls, (self.config["sample"]["size"] // self.config["n_classes"]))
+                    if self.config["class_enum"][cls] >= 0:
+                        labels.add(str(self.config["class_enum"][cls]))
+                dataframes_per_class = []
+                for label in labels:
+                    df = self.sample_class(dataframe, label, (self.config["sample"]["size"] // len(labels)))
                     dataframes_per_class.append(df)
                 dataframe = pd.concat(dataframes_per_class)
                 
@@ -142,7 +144,7 @@ class DataManager:
                     zip(
                         self.dataframes['kenya'].index,
                         map(int, self.dataframes['kenya']["id"]),
-                        self.dataframes['kenya']["class"]
+                        self.dataframes['kenya']["label"]
                     )
                 )),
                 columns=["filename", "class"])
@@ -271,7 +273,7 @@ class DataManager:
                 zip(
                     self.dataframes[country].index, 
                     map(int, self.dataframes[country]["id"]),
-                    self.dataframes[country]["class"]
+                    map(str, self.dataframes[country]["label"]),
                 )
             )),
             columns=["filename", "class"]
