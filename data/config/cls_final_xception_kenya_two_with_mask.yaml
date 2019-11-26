@@ -1,0 +1,45 @@
+name: cls_final_xception_kenya_two_with_mask
+
+use_kenya_images: True
+use_peru_images: False
+
+image_size: 224
+n_channels: 3
+n_classes: 3
+resizing: cropped # scaled or cropped
+mask: overlay_3 # none, overlay, overlay_3, or occlude
+mask_inverted: False
+remove_clouds: True
+use_grayscale: False
+
+sample:
+    size: 150000
+    balanced: False
+
+class_enum:
+    major: 0
+    minor: 1
+    two-track: 2
+
+pretrained:
+    type: Xception
+    fnn_units: 512
+    fnn_layers: 2
+    weights: imagenet
+    pooling: max
+    dropout: 0.3
+    frozen: False
+
+batch_size: 32
+learning_rate: 0.0001
+n_epochs: 2
+tensorboard_freq: 50
+weight_classes: True
+optimizer: adam
+weighted_metrics: 
+ - accuracy
+
+# image date generator
+validation_split: 0.1
+seed: 42
+shuffle: True
