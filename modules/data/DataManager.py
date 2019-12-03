@@ -16,6 +16,7 @@ class DataManager:
         
         self.filenames = {}
         self.dataframes = {}
+        self.directories = {}
         self.shapefiles = {}
         
         self._setup_countries = set()
@@ -34,15 +35,18 @@ class DataManager:
         if country not in self._setup_countries:
             geo = modules.data.load_geodata(country)
             osm, sf = modules.data.load_shapefile(country)
-
+            
             self.shapefiles[country] = sf
             self.dataframes[country] = pd.DataFrame.merge(geo, osm, on="index")
 
             classes = [self.config["class_enum"][v] for v in self.dataframes[country]["class"].values]
             self.dataframes[country]["label"] = classes
             
-            directory = f"{modules.data.util.root()}/{country}/{self.config['image_size']}/{self.config['resizing']}"
-            valid = self.file_is_valid(self.dataframes["kenya"], directory)
+            root = modules.data.util.root()
+            resizing = self.config['resizing'] if self.config['resizing'] != "none" else ""
+            self.directories[country] = os.path.join(root, country, str(self.config['image_size']), resizing)
+            
+            valid = self.file_is_valid(self.dataframes[country], self.directories[country])
             self.dataframes[country] = self.dataframes[country][valid]
 
             self._setup_countries.add(country)
@@ -51,17 +55,20 @@ class DataManager:
         filenames = self._extract_filenames(directory)
         valid = []
         for i in dataframe.index:
-            fname = self._format_filename(i, int(dataframe['id'].loc[i]))
+            if self.config["resizing"] == "none":
+                fname = self._format_filename(i, int(dataframe['id'].loc[i]), ext="tif")
+            else:
+                fname = self._format_filename(i, int(dataframe['id'].loc[i]), ext="jpg")
             valid.append(fname in filenames)
         return np.array(valid)
 
-    def class_weight(self, country):
+    def class_weight(self, dataframe, country):
         class_weight = None
 
         if self.config["weight_classes"]:
-            class_weight = compute_class_weight(
-                "balanced", np.arange(self.config["n_classes"]), self.dataframes[country]["label"].values
-            )
+            classes = np.arange(self.config["n_classes"])
+            weights = compute_class_weight("balanced", classes, dataframe["class"].values.astype(np.int32))
+            class_weight = {cls:weight for cls, weight in zip(classes, weights)}
 
         return class_weight
     
@@ -72,11 +79,11 @@ class DataManager:
     def generate_kenya(self):
         
         # get input directory
-        directory = f"{modules.data.util.root()}/kenya/{self.config['image_size']}/{self.config['resizing']}"
+        directory = self.directories["kenya"]
         
         # format dataframe for ImageDataGenerator.flow_from_dataframe
         dataframe = self._format_dataframe_for_flow("kenya")
-        
+                
         if self.config['remove_clouds']:
             cloud_directory = f"{modules.data.util.root()}/kenya/cloudy.txt"
             cloud_filenames = pd.read_csv(cloud_directory, sep=" ", header=None)
@@ -88,24 +95,24 @@ class DataManager:
             dataframe = dataframe[~dataframe['filename'].isin(cloud_filenames.filename)]
             
             print("Declouded dataframe length: " + str(len(dataframe.index)))
+
+        # cull unused classes from data
+        labels = set()
+        for cls in self.config["class_enum"]:
+            if self.config["class_enum"][cls] >= 0:
+                labels.add(str(self.config["class_enum"][cls]))
+        dataframe = dataframe[np.isin(dataframe["class"], list(labels))]
         
         # sample the data
-        if self.config["sample"]:                    
+        if "sample" in self.config:                 
             if not self.config["sample"]["balanced"]:
                 dataframe = dataframe.sample(n=self.config["sample"]["size"], replace=False, random_state=self.config["seed"])
             else:
-                labels = set()
-                for cls in self.config["class_enum"]:
-                    if self.config["class_enum"][cls] >= 0:
-                        labels.add(str(self.config["class_enum"][cls]))
-                dataframes_per_class = []
-                for label in labels:
-                    df = self.sample_class(dataframe, label, (self.config["sample"]["size"] // len(labels)))
-                    dataframes_per_class.append(df)
-                dataframe = pd.concat(dataframes_per_class)
+                n = self.config["sample"]["size"] // len(labels)
+                dataframe = pd.concat([self.sample_class(dataframe, label, n) for label in labels])
                 
-                # shuffle the data
-                dataframe = dataframe.reindex(np.random.permutation(dataframe.index))        
+        # shuffle the data
+        dataframe = dataframe.reindex(np.random.permutation(dataframe.index))        
 
         # define data preprocessing
         preprocessing_function = None
@@ -177,6 +184,7 @@ class DataManager:
                     yield (x1 * (1 - np.flip(x2, axis=1))).astype(np.float32), y1
             elif self.config["mask"] == "overlay":
                 yield np.concatenate((x1, np.expand_dims(np.flip(x2, axis=1)[:, :, :, 0], axis=3)), axis=3), y1
+                
     def _build_generator(self, datagen, dataframe, directory, subset):
         return datagen.flow_from_dataframe(
             dataframe,
@@ -185,15 +193,18 @@ class DataManager:
             class_mode='categorical',
             batch_size=self.config["batch_size"],
             seed=self.config["seed"],
-#             shuffle=self.config["shuffle"],
-            shuffle=False,
+            shuffle=self.config["shuffle"],
             target_size=(self.config["image_size"], self.config["image_size"])
         )
             
-    def _format_dataframe_for_flow(self, country, suffix=None):
+    def _format_dataframe_for_flow(self, country):
+        if self.config["resizing"] == "none":
+            ext = "tif"
+        else:
+            ext = "jpg"
         return pd.DataFrame(
             list(map(
-                lambda e: (self._format_filename(e[0], e[1], suffix=suffix), e[2]), 
+                lambda e: (self._format_filename(e[0], e[1], ext=ext), e[2]), 
                 zip(
                     self.dataframes[country].index, 
                     map(int, self.dataframes[country]["id"]),
@@ -203,13 +214,9 @@ class DataManager:
             columns=["filename", "class"]
         )
             
-    def _format_filename(self, id1, id2, suffix=None, ext="jpg"):
-        if suffix is None:
-            return f"{id1}_{id2}.{ext}"
-        else:
-            return f"{id1}_{id2}_{suffix}.{ext}"
+    def _format_filename(self, id1, id2, ext):
+        return f"{id1}_{id2}.{ext}"
     
     def _extract_filenames(self, directory):
         filenames = map(lambda x: x.strip(), os.listdir(directory))
-        filenames = set(filenames)
-        return filenames
+        return set(filenames)
