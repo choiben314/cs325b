@@ -1,5 +1,5 @@
 use_kenya_images: True
-use_peru_images: True
+use_peru_images: False
 
 image_size: 224
 resizing: cropped

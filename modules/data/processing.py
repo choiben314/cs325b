@@ -94,7 +94,6 @@ def polygon_perimeter(r, c):
 
     return rr, cc
 
-# TODO: Remove threshold magic number
 def generate_masks(country, config, data_manager=None, threshold=20):
 
     if data_manager is None:
@@ -103,7 +102,7 @@ def generate_masks(country, config, data_manager=None, threshold=20):
     orig_dim = 1000
     crop_dim = config["image_size"]
 
-    o_path = os.path.join(util.root(), country, str(crop_dim), "road_masks")
+    o_path = os.path.join(util.root(), country, str(crop_dim), "masks")
 
     if not os.path.exists(o_path):
         os.makedirs(o_path)
@@ -111,43 +110,43 @@ def generate_masks(country, config, data_manager=None, threshold=20):
     points = [(i, j) for i in range(orig_dim) for j in range(orig_dim)]
     point_tree = cKDTree(points)
 
-    for idx in data_manager.dataframes[country].index:
+    for idx in data_manager.dataframes[country].index.values:
 
-        shpData = data_manager.shapefiles[country].shape(idx).points
+        min_lat = float(data_manager.dataframes[country].loc[idx]["minlat"])
+        max_lat = float(data_manager.dataframes[country].loc[idx]['maxlat'])
+        min_lon = float(data_manager.dataframes[country].loc[idx]['minlon'])
+        max_lon = float(data_manager.dataframes[country].loc[idx]['maxlon'])
 
-        min_lat = float(data_manager.dataframes[country][idx:idx+1]['minlat'])
-        max_lat = float(data_manager.dataframes[country][idx:idx+1]['maxlat'])
-        min_lon = float(data_manager.dataframes[country][idx:idx+1]['minlon'])
-        max_lon = float(data_manager.dataframes[country][idx:idx+1]['maxlon'])
+        id1 = idx
+        id2 = int(data_manager.dataframes[country]["id"][id1])
 
-        points_true = [x for x in shpData if min_lat < x[1] < max_lat and min_lon < x[0] < max_lon]
+        points_inline = []
+        for lon, lat in data_manager.shapefiles[country].shape(idx).points:
+            if min_lat < lat < max_lat and min_lon < lon < max_lon:
+                points_inline.append((lon, lat))
+        if len(points_inline) == 0:
+            continue
 
-        lon = [x[0] for x in points_true]
-        lat = [x[1] for x in points_true]
+        lon, lat = zip(*points_inline)
+        lat = orig_dim * (np.array(lat) - min_lat) / (max_lat - min_lat)
+        lon = orig_dim * (np.array(lon) - min_lon) / (max_lon - min_lon)
 
-        lat_range = max_lat - min_lat
-        lat = orig_dim * (np.array(lat) - min_lat) / lat_range
-
-        lon_range = max_lon - min_lon
-        lon = orig_dim * (np.array(lon) - min_lon) / lon_range
-
-        lon_pixel = polygon_perimeter(lon, lat)[0]
-        lat_pixel = polygon_perimeter(lon, lat)[1]
+        lon_pixel, lat_pixel = polygon_perimeter(lon, lat)
 
         coords = []
-
         lon_thick = []
         lat_thick = []
 
         for i in range(len(lon_pixel)):
             nearest_points_idx = point_tree.query_ball_point([lon_pixel[i], lat_pixel[i]], threshold)
             for point_idx in nearest_points_idx:
-                coords.append(points[point_idx])
-                lon_thick.append(points[point_idx][0])
-                lat_thick.append(points[point_idx][1])
+                lon, lat = points[point_idx]
+                coords.append((lon, lat))
+                lon_thick.append(lon)
+                lat_thick.append(lat)
 
         img = np.zeros((orig_dim, orig_dim), dtype=np.uint8)
         img[lat_thick, lon_thick] = 1
-        save_img = resize(img, (crop_dim, crop_dim), anti_aliasing=False)
-        print(os.path.join(o_path, f"{str(idx)}.png"))
-        cv2.imwrite(os.path.join(o_path, f"{str(idx)}.png"), save_img)
+        save_img = img[(orig_dim // 2 - crop_dim // 2):(orig_dim // 2 + crop_dim // 2), (orig_dim // 2 - crop_dim // 2):(orig_dim // 2 + crop_dim // 2)]
+
+        cv2.imwrite(os.path.join(o_path, f"{id1}_{id2}.png"), save_img)
