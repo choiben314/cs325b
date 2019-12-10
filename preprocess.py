@@ -2,7 +2,7 @@ import os
 import sys
 
 from modules.run import load_config
-from modules.data.processing import downcrop, generate_masks
+from modules.data.processing import downcrop, generate_masks, generate_filters
 from modules.data import DataManager
 
 config = load_config("preprocess")
@@ -10,6 +10,9 @@ config = load_config("preprocess")
 def preprocess(country):
     print(f"Preprocess {country}...")
     try:
+        print("filter")
+        generate_filters(country)
+
         print("downcrop")
         downcrop(country, config["image_size"])
 

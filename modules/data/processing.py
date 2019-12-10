@@ -85,7 +85,7 @@ def polygon_perimeter(r, c):
 
     rr, cc = [], []
     for i in range(len(r) - 1):
-        line_r, line_c = skimage.draw.line(r[i], c[i], r[i + 1], c[i + 1])
+        line_r, line_c = draw.line(r[i], c[i], r[i + 1], c[i + 1])
         rr.extend(line_r)
         cc.extend(line_c)
 
@@ -150,3 +150,27 @@ def generate_masks(country, config, data_manager=None, threshold=20):
         save_img = img[(orig_dim // 2 - crop_dim // 2):(orig_dim // 2 + crop_dim // 2), (orig_dim // 2 - crop_dim // 2):(orig_dim // 2 + crop_dim // 2)]
 
         cv2.imwrite(os.path.join(o_path, f"{id1}_{id2}.png"), save_img)
+
+def generate_filters(country, value_threshold=150):
+
+    i_path = os.path.join(util.root(), country, f"{country}_1000x1000_images")
+
+    corrupt = open(os.path.join(util.root(), country, "corrupt.txt"), "w")
+    clouded = open(os.path.join(util.root(), country, "cloudy.txt"), "w")
+    grayscale = open(os.path.join(util.root(), country, "grayscale.txt"), "w")
+
+    for i, fname in enumerate(os.listdir(i_path)):
+        img = cv2.imread(os.path.join(i_path, fname), cv2.IMREAD_COLOR)
+        fname += "\n"
+        if img is None:
+            corrupt.write(fname)
+        else:
+            means = list(cv2.mean(img))[:-1]
+            if all(value > value_threshold for value in means):
+                clouded.write(fname)
+            elif means.count(means[0]) == len(means):
+                grayscale.write(fname)
+
+    corrupt.close()
+    clouded.close()
+    grayscale.close()
