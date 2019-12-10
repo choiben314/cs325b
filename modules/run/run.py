@@ -5,8 +5,6 @@ from tensorflow.keras.losses import CategoricalCrossentropy
 
 
 def load_config(fname):
-    assert fname.startswith("cls") or fname.startswith("seg")       
-    
     root = f"{os.path.dirname(os.path.dirname(os.path.dirname(__file__)))}/data/"
     
     path_to_def = os.path.join(root, "config", f"{fname}.yaml")

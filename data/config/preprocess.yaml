@@ -1,0 +1,9 @@
+use_kenya_images: True
+use_peru_images: True
+
+image_size: 224
+resizing: cropped
+class_enum:
+    major: 0
+    minor: 1
+    two-track: 2

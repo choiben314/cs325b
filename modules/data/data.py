@@ -24,10 +24,9 @@ CLASSMAP = {
 
 def _load_shapefile(country, encoding="iso-8859-1"):
     util.validate_country(country)
-    path = os.path.join(util.root(), country, f"{country}_roads")
-    dbf = open(f"{path}.dbf", "rb")
-    shp = open(f"{path}.shp", "rb")
-    shx = open(f"{path}.shx", "rb")
+    dbf = open(os.path.join(util.root(), country, f"{country}_roads.dbf"), "rb")
+    shp = open(os.path.join(util.root(), country, f"{country}_roads.shp"), "rb")
+    shx = open(os.path.join(util.root(), country, f"{country}_roads.shx"), "rb")
     sf = shapefile.Reader(shp=shp, dbf=dbf, shx=shx)
     sf.encoding = encoding
     return sf
@@ -40,15 +39,15 @@ def load_shapefile(country):
     for i, sr in enumerate(sf.shapeRecords()):
         if sr.record.highway in CLASSMAP:
             row = (
-                i, 
-                sr.record.highway, 
-                CLASSMAP[sr.record.highway], 
+                i,
+                sr.record.highway,
+                CLASSMAP[sr.record.highway],
                 sr.record.name
             )
             table.append(row)
     df = pandas.DataFrame.from_records(table, index="index", columns=columns)
     return df, sf
-    
+
 # .csv road and image bounding box data handling
 
 def load_geodata(country):

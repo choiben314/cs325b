@@ -9,4 +9,6 @@ __pycache__
 *.pyc
 local_images/
 extra_data/
-data/
+data/kenya
+data/peru
+.DS_Store
