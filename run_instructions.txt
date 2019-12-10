@@ -1,0 +1,7 @@
+Instructions:
+        
+    1. Activate the Anaconda or virtualenv environment created
+       previously.
+       
+    2. Execute the shell script from the submission root directory.
+        - bash main.sh

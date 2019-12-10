@@ -1,0 +1,12 @@
+This project uses python 3.7 and the corresponding package binaries.
+
+Please create a new vritual environment with with Anaconda (preferred) 
+or pip. For example...
+
+    - conda create -n roads python=3.7
+
+Then, install the packages into the environment. For example...
+
+    - conda install -f -y -q --name roads -c conda-forge --file requirements.txt
+    
+Alternatively, use pip for Python 3.7 with the virtualenv package.

@@ -1,0 +1,46 @@
+Instructions:
+
+    1. Copy the kenya and peru image data as found in the bucket
+       into the subfolder data/kenya/kenya_1000x1000_images and
+       data/peru/peru_1000x1000_images respectively
+
+    2. Unzip the kenya metadata
+        - cd data/kenya && unzip kenya_roads.zip && cd ../../
+    
+    3. Unzip the peru metadata
+        - cd data/peru && unzip peru_roads.zip && cd ../../
+        
+    4. Activate the Anaconda or virtualenv environment created
+       previously.
+
+The environment should have the following structure. Only the 
+data folder is expanded for simplicity.
+
+root/
+
+    # run script(s)
+    run.py
+
+    # text files
+    installation_instructions.txt
+    environment_setup.txt
+    run_instructions.txt
+    requirements.txt
+
+    # data subfolder
+    data/
+        - kenya/
+            - kenya_1000x1000_images/
+                - kenya_1000x1000_<id0_0>_<id1_0>.tif
+                - kenya_1000x1000_<id0_1>_<id1_1>.tif
+            - kenya_roads.zip
+        - peru/
+            - peru_1000x1000_images/
+                - peru_1000x1000_<id0_0>_<id1_0>.tif
+                - peru_1000x1000_<id0_1>_<id1_1>.tif
+            - peru_roads.zip
+        - config/
+
+    # code subfolder
+    modules/
+    
