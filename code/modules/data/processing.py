@@ -107,7 +107,6 @@ def generate_masks(country, config, data_manager, threshold=20):
 
     for i in range(data_manager.dataframes[country].index.values.shape[0]):
 
-        ord = int(data_manager.dataframes[country]["ord"].iloc[i])
         id1 = data_manager.dataframes[country].index.values[i]
         id2 = int(data_manager.dataframes[country]["id"].iloc[i])
 
@@ -154,9 +153,6 @@ def generate_masks(country, config, data_manager, threshold=20):
         elif country == "peru":
             ord = int(data_manager.dataframes[country]["ord"].iloc[i])
             cv2.imwrite(os.path.join(o_path, f"{id2}-{ord}.png"), save_img)
-
-        images.append((f"{id2}-{ord}.png", save_img))
-    return images
 
 def generate_filters(country, value_threshold=150):
 

@@ -22,7 +22,7 @@ class_enum:
     two-track: 2
 
 pretrained:
-    type: ResNetV2
+    type: ResNet50V2
     fnn_units: 512
     fnn_layers: 2
     weights: imagenet

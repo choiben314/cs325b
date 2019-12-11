@@ -1,1 +1,4 @@
-python code/run_all.py
+cd code
+python submit.py &
+echo "Submission script running in background."
+cd ..

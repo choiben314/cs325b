@@ -1,7 +1,33 @@
 Instructions:
-        
+
     1. Activate the Anaconda or virtualenv environment created
        previously.
        
-    2. Execute the shell script from the submission root directory.
+    2. Resolve subset/config inconsistencies*
+       
+    3. Execute the shell script from the submission root directory.
         - bash main.sh
+        
+    4. Find the model weights and training and validation metrics
+       in the data/<config>/ subfolder
+       
+    5. View training and validation metrics via tensorboard.
+        - cd data/<config> && tensorboard --logdir=tensorboard
+        
+* Several of our experiment depend on there existing a minimum number
+  of samples per class. We set this via the following config parameters.
+  
+  - n_classes: <int>
+  - sample:
+        - size: <int>
+        - balanced: <bool>
+        
+  If sample.balanced is True, we draw (sample.size // num_classes) samples 
+  per class. If this number exceeds the representation of any class in the
+  data, we sample with replacement.
+  
+  If sample.balanced is False, we draw sample.size samples without accounting
+  for class.
+  
+  A valid sample size must be defined w.r.t. the class ratio if we expect
+  meaningful train/val metrics during training (data leak).

@@ -1,4 +1,4 @@
-name: final_resnet_kenya_balanced_minor_vs_all
+name: test
 
 use_kenya_images: True
 use_peru_images: False
@@ -7,18 +7,18 @@ image_size: 224
 n_channels: 3
 n_classes: 2
 resizing: cropped # scaled or cropped
-mask: none # none, overlay, or occlude
+mask: overlay_3 # none, overlay, or occlude
 mask_inverted: False
 remove_clouds: True
 use_grayscale: False
 
 sample:
-    size: 10000
-    balanced: True
+    size: 100
+    balanced: False
 
 class_enum:
-    major: 1
-    minor: 0
+    major: 0
+    minor: 1
     two-track: 1
 
 pretrained:

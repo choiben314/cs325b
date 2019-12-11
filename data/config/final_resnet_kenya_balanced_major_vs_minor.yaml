@@ -5,7 +5,7 @@ use_peru_images: False
 
 image_size: 224
 n_channels: 3
-n_classes: 3
+n_classes: 2
 resizing: cropped # scaled or cropped
 mask: none # none, overlay, or occlude
 mask_inverted: False
@@ -22,7 +22,7 @@ class_enum:
     two-track: -1
 
 pretrained:
-    type: ResNetV2
+    type: ResNet50V2
     fnn_units: 512
     fnn_layers: 2
     weights: imagenet
