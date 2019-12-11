@@ -6,3 +6,6 @@ matplotlib
 pyaml
 pyshp
 pandas
+tensorboard
+numpy
+scipy

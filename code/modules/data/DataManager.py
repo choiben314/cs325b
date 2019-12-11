@@ -234,7 +234,7 @@ class DataManager:
         if self.config["mask"] == 'none':
             train_generator = self._build_generator(datagen, dataframe, directory, "training")
             val_generator = self._build_generator(datagen, dataframe, directory, "validation")
-        elif self.config["mask"] == "occlude" or self.config["mask"] == "overlay":
+        else:
             raise NotImplementedError("Masking not implemented for Peru.")
 
         return train_generator, val_generator, dataframe
@@ -268,7 +268,6 @@ class DataManager:
             class_mode='categorical',
             batch_size=self.config["batch_size"],
             seed=self.config["seed"],
-#             shuffle=self.config["shuffle"],
             shuffle=to_shuffle,
             target_size=(self.config["image_size"], self.config["image_size"])
         )
