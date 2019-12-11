@@ -1,13 +1,13 @@
 name: test
 
-use_kenya_images: True
-use_peru_images: False
+use_kenya_images: False
+use_peru_images: True
 
 image_size: 224
 n_channels: 3
 n_classes: 2
 resizing: cropped # scaled or cropped
-mask: overlay_3 # none, overlay, or occlude
+mask: none # none, overlay, or occlude
 mask_inverted: False
 remove_clouds: True
 use_grayscale: False
@@ -22,7 +22,7 @@ class_enum:
     two-track: 1
 
 pretrained:
-    type: ResNet50V2
+    type: Xception
     fnn_units: 512
     fnn_layers: 2
     weights: imagenet
